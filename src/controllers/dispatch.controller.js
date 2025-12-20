@@ -1,3 +1,4 @@
+// src/controllers/dispatch.controller.js
 import { dispatchWebhook } from "../services/webhookDispatcher.js";
 
 export async function dispatchEvent(req, res) {
