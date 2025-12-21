@@ -1,38 +1,43 @@
+//src/services/webhookDispatcher.js
 import axios from "axios";
 import WebhookLog from "../models/WebhookLog.js";
 
 export async function dispatchWebhook(data) {
     const {
-        deviceId,
+        sessionId,
+        crmDeviceId,
         eventId,
-        targetUrl,
-        headers,
+        url,
+        // headers,
         payload,
         filePath
     } = data;
 
     try {
-        const res = await axios.post(targetUrl, payload, {
-            headers,
+        const res = await axios.post(url, payload, {
+            // headers,
             timeout: 10000
         });
 
-        await WebhookLog.create({
-            deviceId,
-            eventId,
-            targetUrl,
-            status: "success",
-            responseCode: res.status,
-            payload,
-            filePath
-        });
+        console.log(`dispatchWebhook.sessionId:  ${sessionId}`);
+        console.log(`dispatchWebhook.responseCode:  ${res.status}`);
+
+        // await WebhookLog.create({
+        //     deviceId,
+        //     eventId,
+        //     url,
+        //     status: "success",
+        //     responseCode: res.status,
+        //     payload,
+        //     filePath
+        // });
 
         return true;
     } catch (err) {
         await WebhookLog.create({
-            deviceId,
+            crmDeviceId,
             eventId,
-            targetUrl,
+            url,
             status: "failed",
             responseCode: err.response?.status,
             error: err.message,

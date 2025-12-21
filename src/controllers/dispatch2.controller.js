@@ -3,11 +3,10 @@ import { dispatchWebhook } from "../services/webhookDispatcher.js";
 
 export async function dispatchEvent(req, res) {
     const {
-        sessionId,
-        crmDeviceId,
+        deviceId,
         eventId,
-        url,
-        // headers,
+        targetUrl,
+        headers,
         payload
     } = req.body;
 
@@ -22,10 +21,10 @@ export async function dispatchEvent(req, res) {
 
     // Dispatch async (non-blocking)
     dispatchWebhook({
-        sessionId,
-        crmDeviceId,
+        deviceId,
         eventId,
-        url,
+        targetUrl,
+        headers,
         payload,
         filePath
     });
