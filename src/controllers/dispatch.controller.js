@@ -15,10 +15,10 @@ export async function dispatchEvent(req, res) {
         ? req.file.path
         : null;
 
+    console.log(`dispatchEvent.Webhook accepted url:  ${url}`);
+
     // پاسخ سریع به Server X
-    res.status(202).json({
-        message: "Webhook accepted"
-    });
+    res.status(202).json({ message: "Webhook accepted" });
 
     // Dispatch async (non-blocking)
     dispatchWebhook({
