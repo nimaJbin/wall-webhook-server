@@ -2,7 +2,7 @@
 import app from "./app.js";
 import { connectMongo } from "./config/mongo.js";
 
-const PORT = process.env.PORT || 7008;
+const PORT = process.env.WH_SERVER_PORT || 7001;
 
 await connectMongo();
 

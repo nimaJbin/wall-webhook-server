@@ -8,7 +8,7 @@ services:
       dockerfile: docker/Dockerfile
     container_name: webhook-server
     ports:
-      - "7001:7008"
+      - "7001:7001"
     env_file:
       - .env
     volumes:

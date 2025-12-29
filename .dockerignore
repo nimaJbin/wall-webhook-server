@@ -1,0 +1,27 @@
+# node
+node_modules
+npm-debug.log
+yarn-error.log
+
+# env
+.env
+
+# git
+.git
+.gitignore
+
+# logs
+logs
+*.log
+
+# runtime generated
+tmp
+public/uploads
+
+# docker
+docker
+docker-compose.yml
+
+# OS
+.DS_Store
+Thumbs.db
