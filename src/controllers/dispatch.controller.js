@@ -5,9 +5,9 @@ export async function dispatchEvent(req, res) {
     const {
         sessionId,
         crmDeviceId,
-        eventId,
         url,
-        // headers,
+        eventId,
+        headers,
         payload
     } = req.body;
 
@@ -25,6 +25,7 @@ export async function dispatchEvent(req, res) {
         sessionId,
         crmDeviceId,
         eventId,
+        headers,
         url,
         payload,
         filePath

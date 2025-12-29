@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const WebhookLogSchema = new mongoose.Schema(
     {
-        deviceId: String,
+        crmDeviceId: String,
         eventId: Number,
         targetUrl: String,
         status: {

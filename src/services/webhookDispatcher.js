@@ -8,14 +8,14 @@ export async function dispatchWebhook(data) {
         crmDeviceId,
         eventId,
         url,
-        // headers,
+        headers,
         payload,
         filePath
     } = data;
 
     try {
         const res = await axios.post(url, payload, {
-            // headers,
+            headers,
             timeout: 10000
         });
 
@@ -37,7 +37,7 @@ export async function dispatchWebhook(data) {
         await WebhookLog.create({
             crmDeviceId,
             eventId,
-            url,
+            targetUrl: url,
             status: "failed",
             responseCode: err.response?.status,
             error: err.message,
