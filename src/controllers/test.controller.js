@@ -113,7 +113,10 @@ export async function logsPage(req, res) {
           <td>${l.status || ""}</td>
           <td>${l.responseCode ?? ""}</td>
           <td>${createdAt}</td>
-          <td><pre style="max-width:720px; white-space:pre-wrap;">${JSON.stringify(l.payload || {}, null, 2).replace(/</g, "&lt;")}</pre></td>
+          <td>${l.error}</td>
+          <td>
+            <pre style="max-width:720px; white-space:pre-wrap;">${JSON.stringify(l.payload || {}, null, 2).replace(/</g, "&lt;")}</pre>
+          </td>
         </tr>
       `;
         })
@@ -142,13 +145,14 @@ export async function logsPage(req, res) {
         <table>
           <thead>
             <tr>
-              <th>_id</th>
+              <th style="width: 10px">_id</th>
               <th>crmDeviceId</th>
               <th>eventId</th>
               <th>targetUrl</th>
               <th>status</th>
               <th>code</th>
               <th>createdAt</th>
+              <th>Error</th>
               <th>payload</th>
             </tr>
           </thead>
