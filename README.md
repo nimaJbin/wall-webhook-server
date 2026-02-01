@@ -1,13 +1,17 @@
 
+## Showing Logs
+docker compose logs -f --tail=100 webhookserver
+docker logs -f webhook-server
 
 ### Docker
-docker-compose up --build
 docker-compose down
+docker compose up -d --build
 docker-compose build --no-cache
 --------------------------------
 ### Rest Node After Any Change:
 docker compose restart webhookserver
-docker logs -f webhook-server
+
+
 
 
 
