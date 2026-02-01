@@ -1,5 +1,6 @@
 // src/controllers/test.controller.js
 import WebhookLog from "../models/WebhookLog.js";
+import axios from "axios";
 
 export async function health(req, res) {
     return res.status(200).json({
@@ -58,12 +59,19 @@ export async function seed(req, res) {
         // 2) اگر url داده شده، ارسال واقعی انجام بده
         if (targetUrl) {
             try {
-                const resp = await fetch(targetUrl, {
+                const resp2 = await fetch(targetUrl, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify(dispatchEnvelope),
+                });
+
+                const resp = await axios.post(targetUrl, JSON.stringify(dispatchEnvelope), {
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    timeout: 10000
                 });
 
                 const text = await resp.text(); // ممکنه json نباشه
