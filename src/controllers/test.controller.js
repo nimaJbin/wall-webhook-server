@@ -1,7 +1,20 @@
 // src/controllers/test.controller.js
+// import WebhookLog from "../models/WebhookLog.js";
+// import * as console from "console";
+// import axios from "axios";
+// import https from "https";
+// import dns from "dns";
+import { dispatchWebhook } from "../services/webhookDispatcher.js";
 import WebhookLog from "../models/WebhookLog.js";
-import axios from "axios";
-import * as console from "console";
+
+// const ipv4Agent = new https.Agent({
+//     keepAlive: true,
+//     lookup: (hostname, options, callback) => {
+//         // فقط IPv4
+//         dns.lookup(hostname, { family: 4 }, callback);
+//     },
+// });
+
 
 export async function health(req, res) {
     return res.status(200).json({
@@ -25,262 +38,61 @@ function buildFakePayload() {
 }
 
 
+
 export async function seed(req, res) {
-    try {
-        const targetUrl =
-            (typeof req.query.url === "string" && req.query.url.trim() !== "")
-                ? req.query.url.trim()
-                : null;
+    const targetUrl =
+        (typeof req.query.url === "string" && req.query.url.trim() !== "")
+            ? req.query.url.trim()
+            : null;
 
-        const fakePayload = buildFakePayload();
+    const fakePayload = buildFakePayload();
 
-        // چیزی که می‌خوای مثل dispatchEvent باشد
-        const dispatchEnvelope = {
-            sessionId: fakePayload.sessionId,
-            crmDeviceId: "crmDevice_test_001",
-            url: targetUrl,
-            eventId: 7,
-            payload: fakePayload,
-        };
+    const envelope = {
+        sessionId: fakePayload.sessionId,
+        crmDeviceId: "crmDevice_test_001",
+        url: targetUrl,
+        eventId: 7,
+        headers: {},     // اگر نیاز داشتی
+        payload: fakePayload,
+        filePath: null,
+    };
 
-        // 1) اول لاگ اولیه را ذخیره کن (pending)
+    // اگر url نداشت، فقط ذخیره کن و برگردون
+    if (!targetUrl) {
         const created = await WebhookLog.create({
-            crmDeviceId: dispatchEnvelope.crmDeviceId,
-            eventId: dispatchEnvelope.eventId,
-            targetUrl: targetUrl || "N/A",
-            status: targetUrl ? "success" : "failed",
+            crmDeviceId: envelope.crmDeviceId,
+            eventId: envelope.eventId,
+            targetUrl: "N/A",
+            status: "skipped",
             responseCode: null,
             error: null,
             filePath: null,
-            payload: dispatchEnvelope, // ✅ دقیقاً همون آبجکتی که گفتی می‌خوای ذخیره شه
+            payload: envelope,
         });
 
-        let sendResult = null;
-
-        // 2) اگر url داده شده، ارسال واقعی انجام بده
-        if (targetUrl) {
-            try {
-                // const resp2 = await fetch(targetUrl, {
-                //     method: "POST",
-                //     headers: {
-                //         "Content-Type": "application/json",
-                //     },
-                //     body: JSON.stringify(dispatchEnvelope),
-                // });
-
-                const resp = await axios.post(targetUrl, JSON.stringify(dispatchEnvelope), {
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    timeout: 10000
-                });
-
-                const text = await resp.text(); // ممکنه json نباشه
-                sendResult = {
-                    ok: resp.ok,
-                    status: resp.status,
-                    statusText: resp.statusText,
-                    body: text?.slice(0, 2000), // لاگ رو خیلی بزرگ نکنیم
-                };
-
-                console.log('seed.sendResult : ', sendResult)
-
-                // 3) آپدیت لاگ با نتیجه ارسال
-                await WebhookLog.updateOne(
-                    { _id: created._id },
-                    {
-                        $set: {
-                            status: resp.ok ? "success" : "failed",
-                            responseCode: resp.status,
-                            error: resp.ok ? null : `HTTP ${resp.status} ${resp.statusText}`,
-                        },
-                    }
-                );
-            } catch (e) {
-                const cause = e?.cause
-                    ? (typeof e.cause === "object" ? {
-                        name: e.cause.name,
-                        code: e.cause.code,
-                        message: e.cause.message,
-                    } : e.cause)
-                    : null;
-
-                sendResult = {
-                    ok: false,
-                    error: e?.message || String(e),
-                    cause,
-                };
-
-                await WebhookLog.updateOne(
-                    { _id: created._id },
-                    {
-                        $set: {
-                            status: "failed",
-                            responseCode: 0,
-                            error: JSON.stringify(sendResult),
-                        },
-                    }
-                );
-            }
-        }
-
-        // 4) حتماً از DB بخون و خروجی بده
         const fromDb = await WebhookLog.findById(created._id).lean();
-
-        return res.status(200).json({
-            ok: true,
-            dispatchedTo: targetUrl || null,
-            sendResult,     // نتیجه ارسال واقعی
-            dbSaved: fromDb // چیزی که واقعاً در Mongo ذخیره شده (بعد از update)
-        });
-    } catch (err) {
-        return res.status(500).json({
-            ok: false,
-            error: err?.message || String(err),
-        });
+        return res.status(200).json({ ok: true, dispatchedTo: null, dbSaved: fromDb });
     }
+
+    // ✅ فقط همین: صدا زدن dispatch واقعی
+    const ok = await dispatchWebhook(envelope);
+
+    // ✅ خروجی از Mongo خوانده شود
+    const last = await WebhookLog.findOne({
+        crmDeviceId: envelope.crmDeviceId,
+        eventId: envelope.eventId,
+        targetUrl: targetUrl,
+    }).sort({ createdAt: -1 }).lean();
+
+    return res.status(200).json({
+        ok: true,
+        dispatchedTo: targetUrl,
+        dispatchOk: ok,
+        dbSaved: last,
+    });
 }
 
 
-export async function seed1(req, res) {
-    try {
-        const targetUrl =
-            (typeof req.query.url === "string" && req.query.url.trim() !== "")
-                ? req.query.url.trim()
-                : null;
-
-        const fakePayload = buildFakePayload();
-
-        // چیزی که می‌خوای مثل dispatchEvent باشد
-        const dispatchEnvelope = {
-            sessionId: fakePayload.sessionId,
-            crmDeviceId: "crmDevice_test_001",
-            url: targetUrl,
-            eventId: 7,
-            payload: fakePayload,
-        };
-
-        // 1) اول لاگ اولیه را ذخیره کن (pending)
-        const created = await WebhookLog.create({
-            crmDeviceId: dispatchEnvelope.crmDeviceId,
-            eventId: dispatchEnvelope.eventId,
-            targetUrl: targetUrl || "N/A",
-            status: targetUrl ? "success" : "failed",
-            responseCode: null,
-            error: null,
-            filePath: null,
-            payload: dispatchEnvelope, // ✅ دقیقاً همون آبجکتی که گفتی می‌خوای ذخیره شه
-        });
-
-        let sendResult = null;
-
-        // 2) اگر url داده شده، ارسال واقعی انجام بده
-        if (targetUrl) {
-            try {
-                const resp = await fetch(targetUrl, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(dispatchEnvelope),
-                });
-
-                const text = await resp.text(); // ممکنه json نباشه
-                sendResult = {
-                    ok: resp.ok,
-                    status: resp.status,
-                    statusText: resp.statusText,
-                    body: text?.slice(0, 2000), // لاگ رو خیلی بزرگ نکنیم
-                };
-
-                console.log('seed.sendResult : ', sendResult)
-
-                // 3) آپدیت لاگ با نتیجه ارسال
-                await WebhookLog.updateOne(
-                    { _id: created._id },
-                    {
-                        $set: {
-                            status: resp.ok ? "success" : "failed",
-                            responseCode: resp.status,
-                            error: resp.ok ? null : `HTTP ${resp.status} ${resp.statusText}`,
-                        },
-                    }
-                );
-            } catch (e) {
-
-                sendResult = {
-                    ok: false,
-                    error: e?.message || String(e),
-                };
-
-                await WebhookLog.updateOne(
-                    { _id: created._id },
-                    {
-                        $set: {
-                            status: "failed",
-                            responseCode: 0,
-                            error: sendResult.error,
-                        },
-                    }
-                );
-            }
-        }
-
-        // 4) حتماً از DB بخون و خروجی بده
-        const fromDb = await WebhookLog.findById(created._id).lean();
-
-        return res.status(200).json({
-            ok: true,
-            dispatchedTo: targetUrl || null,
-            sendResult,     // نتیجه ارسال واقعی
-            dbSaved: fromDb // چیزی که واقعاً در Mongo ذخیره شده (بعد از update)
-        });
-    } catch (err) {
-        return res.status(500).json({
-            ok: false,
-            error: err?.message || String(err),
-        });
-    }
-}
-
-
-export async function seed2(req, res) {
-    try {
-        const targetUrl =
-            (typeof req.query.url === "string" && req.query.url.trim() !== "")
-                ? req.query.url.trim()
-                : "https://example.com/webhook-test";
-
-        // داده‌های فیک مطابق ساختار کلی شما
-        const fake = {
-            crmDeviceId: "crmDevice_test_001",
-            eventId: 7, // مثلا message_received
-            targetUrl,
-            status: "success",
-            responseCode: 200,
-            error: null,
-            filePath: null,
-            payload: buildFakePayload(),
-        };
-
-        // 1) درج مستقیم
-        const created = await WebhookLog.create(fake);
-
-        // 2) حتما از DB بخونیم و برگردونیم (طبق شرط شما)
-        const fromDb = await WebhookLog.findById(created._id).lean();
-
-        return res.status(200).json({
-            ok: true,
-            inputInserted: fake,        // چیزی که مستقیم قصد داشتیم ذخیره کنیم
-            dbSaved: fromDb,            // چیزی که واقعاً از Mongo خوانده شد
-        });
-    } catch (err) {
-        return res.status(500).json({
-            ok: false,
-            error: err?.message || String(err),
-        });
-    }
-}
 
 export async function logsPage(req, res) {
     const limit = Math.min(Number(req.query.limit || 20), 100);

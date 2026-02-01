@@ -22,15 +22,18 @@ export async function dispatchWebhook(data) {
         console.log(`dispatchWebhook.sessionId:  ${sessionId}`);
         console.log(`dispatchWebhook.responseCode:  ${res.status}`);
 
-        // await WebhookLog.create({
-        //     deviceId,
-        //     eventId,
-        //     url,
-        //     status: "success",
-        //     responseCode: res.status,
-        //     payload,
-        //     filePath
-        // });
+        const ok = res.status >= 200 && res.status < 300;
+
+        await WebhookLog.create({
+            crmDeviceId,
+            eventId,
+            targetUrl: url,
+            status: ok ? "success" : "failed",
+            responseCode: res.status,
+            error: ok ? null : `HTTP ${res.status}`,
+            payload,
+            filePath,
+        });
 
         return true;
     } catch (err) {
@@ -39,7 +42,7 @@ export async function dispatchWebhook(data) {
             eventId,
             targetUrl: url,
             status: "failed",
-            responseCode: err.response?.status,
+            responseCode: err.response?.status || 0,
             error: err.message,
             payload,
             filePath
