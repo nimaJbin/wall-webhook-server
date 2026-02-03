@@ -16,6 +16,9 @@ services:
       - ./uploads:/app/uploads
     depends_on:
       - mongo
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     restart: unless-stopped
 
   mongo:
