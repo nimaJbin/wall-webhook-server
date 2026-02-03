@@ -37,6 +37,9 @@ export async function dispatchWebhook(data) {
 
         return true;
     } catch (err) {
+
+        console.log('err => ', {err})
+
         await WebhookLog.create({
             crmDeviceId,
             eventId,
