@@ -80,9 +80,14 @@ export async function dispatchWebhook(data) {
             timeoutMs: 15000, // CHANGED: consistent timeout
         });
 
+        console.log('************ Version httpRequest 1.1 ************')
+
         const ok = !!res?.ok; // CHANGED
         const status = Number(res?.status || 0); // CHANGED
         const responseText = safeStringify(res?.body, 1200); // CHANGED
+
+        console.log('res => ', {res})
+
 
         // keep logs similar to before (if you had them)
         console.log(`dispatchWebhook.sessionId: ${sessionId}`); // CHANGED

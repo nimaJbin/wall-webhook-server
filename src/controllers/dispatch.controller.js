@@ -21,7 +21,7 @@ export async function dispatchEvent(req, res) {
     res.status(202).json({ message: "Webhook accepted" });
 
     // Dispatch async (non-blocking)
-    dispatchWebhook({
+    await dispatchWebhook({
         sessionId,
         crmDeviceId,
         eventId,
